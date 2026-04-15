@@ -14,3 +14,14 @@ def test_media_store_cleans_up_expired_assets(tmp_path: Path) -> None:
     assert removed == 1
     assert not asset.audio_path.exists()
     assert store.get_asset("abc123") is None
+
+
+def test_media_store_prunes_oldest_assets_when_over_size_limit(tmp_path: Path) -> None:
+    store = MediaStore(tmp_path / "media", ttl_seconds=3600, max_bytes=8)
+    first = store.store_audio(request_id="first", audio_bytes=b"12345", mime_type="audio/wav", text="one")
+    second = store.store_audio(request_id="second", audio_bytes=b"67890", mime_type="audio/wav", text="two")
+    assert not first.audio_path.exists()
+    assert first.metadata_path.exists() is False
+    assert second.audio_path.exists()
+    assert store.get_asset("first") is None
+    assert store.get_asset("second") is not None

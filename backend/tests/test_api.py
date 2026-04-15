@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from app.config import Settings
 from app.main import create_app
 from app.services.media_store import MediaStore
 from app.services.ocr_service import RecognizedBlock, RecognizedPage
@@ -29,8 +30,9 @@ class FakeTtsService:
         return SynthesizedAudio(audio_bytes=b"RIFFfakewav", mime_type="audio/wav", sample_rate=24000)
 
 
-def _make_client(tmp_path: Path) -> TestClient:
+def _make_client(tmp_path: Path, *, settings: Settings | None = None) -> TestClient:
     app = create_app(
+        settings=settings,
         ocr_service=FakeOcrService(),
         tts_service=FakeTtsService(),
         media_store=MediaStore(tmp_path / "media", ttl_seconds=3600),
@@ -116,3 +118,11 @@ def test_read_endpoint_returns_busy_when_gate_is_full(tmp_path: Path) -> None:
     response = client.post("/api/read", data={"text": "hello"})
     assert response.status_code == 503
     assert response.headers["retry-after"] == "5"
+
+
+def test_read_endpoint_rejects_overlong_text(tmp_path: Path) -> None:
+    settings = Settings(max_text_chars=4)
+    client = _make_client(tmp_path, settings=settings)
+    response = client.post("/api/read", data={"text": "hello"})
+    assert response.status_code == 422
+    assert "character limit" in response.json()["detail"]

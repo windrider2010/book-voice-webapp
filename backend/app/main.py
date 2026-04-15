@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import threading
 import uuid
 from contextlib import asynccontextmanager
@@ -16,6 +17,8 @@ from app.services.image_pipeline import ImageValidationError, normalize_uploaded
 from app.services.media_store import MediaStore
 from app.services.ocr_service import OcrService, PaddleOcrService
 from app.services.tts_service import KokoroTtsService, TtsService
+
+logger = logging.getLogger(__name__)
 
 
 class ReadConcurrencyGate:
@@ -38,16 +41,26 @@ class ReadConcurrencyGate:
 
 def create_app(
     *,
+    settings=None,
     ocr_service: OcrService | None = None,
     tts_service: TtsService | None = None,
     media_store: MediaStore | None = None,
 ) -> FastAPI:
-    settings = get_settings()
+    settings = settings or get_settings()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         app.state.media_store.cleanup_expired()
-        yield
+        app.state.media_store.cleanup_to_size_limit()
+        cleanup_task = asyncio.create_task(_media_cleanup_loop(app))
+        try:
+            yield
+        finally:
+            cleanup_task.cancel()
+            try:
+                await cleanup_task
+            except asyncio.CancelledError:
+                pass
 
     app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
@@ -59,7 +72,11 @@ def create_app(
         speed=settings.kokoro_speed,
         espeak_ng_path=settings.espeak_ng_path,
     )
-    app.state.media_store = media_store or MediaStore(settings.media_root, ttl_seconds=settings.media_ttl_seconds)
+    app.state.media_store = media_store or MediaStore(
+        settings.media_root,
+        ttl_seconds=settings.media_ttl_seconds,
+        max_bytes=settings.media_max_bytes,
+    )
     app.state.read_gate = ReadConcurrencyGate(settings.max_active_reads)
 
     app.add_middleware(
@@ -119,6 +136,11 @@ def create_app(
 
             if not source_text:
                 raise HTTPException(status_code=422, detail="No readable text was produced from the submitted input.")
+            if len(source_text) > settings.max_text_chars:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Text exceeds the {settings.max_text_chars} character limit.",
+                )
 
             audio = await asyncio.to_thread(app.state.tts_service.synthesize_text, source_text, lang_hint)
             asset = app.state.media_store.store_audio(
@@ -192,6 +214,19 @@ def _register_spa_routes(app: FastAPI) -> None:
         if index_path.exists():
             return FileResponse(index_path)
         raise HTTPException(status_code=404)
+
+
+async def _media_cleanup_loop(app: FastAPI) -> None:
+    interval = app.state.settings.media_cleanup_interval_seconds
+    if interval <= 0:
+        return
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            app.state.media_store.cleanup_expired()
+            app.state.media_store.cleanup_to_size_limit()
+        except Exception:
+            logger.exception("Background media cleanup failed")
 
 
 app = create_app()
