@@ -1,0 +1,214 @@
+:root {
+  color-scheme: dark;
+  font-family: "Avenir Next", "PingFang SC", "Segoe UI", sans-serif;
+  --bg-top: #1d2740;
+  --bg-bottom: #0a0f1b;
+  --panel: rgba(10, 18, 32, 0.84);
+  --panel-border: rgba(158, 179, 255, 0.24);
+  --text: #f4f7ff;
+  --muted: #b9c4de;
+  --accent: #7ee0a6;
+  --accent-strong: #54c67f;
+  --accent-contrast: #092215;
+  --warm: #ffd476;
+  --error: #ffb4b4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(126, 224, 166, 0.16), transparent 32%),
+    radial-gradient(circle at 85% 20%, rgba(255, 212, 118, 0.18), transparent 22%),
+    linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+  color: var(--text);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.shell {
+  min-height: 100vh;
+  padding: 18px;
+}
+
+.panel {
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding: 24px 18px 32px;
+  border: 1px solid var(--panel-border);
+  border-radius: 28px;
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 7vw, 3.35rem);
+  line-height: 0.94;
+  letter-spacing: -0.04em;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--warm);
+}
+
+.lede {
+  margin: 14px 0 0;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.camera-card {
+  position: relative;
+  margin-top: 22px;
+  border-radius: 24px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  aspect-ratio: 3 / 4;
+}
+
+.preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.08)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.12));
+}
+
+.camera-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+}
+
+.page-frame {
+  width: 76%;
+  height: 72%;
+  border-radius: 22px;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 0 0 999px rgba(3, 8, 15, 0.24),
+    inset 0 0 0 1px rgba(126, 224, 166, 0.48);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.primary,
+.capture,
+.secondary {
+  min-height: 52px;
+  border: 0;
+  border-radius: 18px;
+  font-weight: 700;
+}
+
+.primary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}
+
+.capture {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: var(--accent-contrast);
+}
+
+.secondary {
+  margin-top: 12px;
+  width: 100%;
+  background: rgba(255, 212, 118, 0.14);
+  color: var(--warm);
+}
+
+button:disabled {
+  opacity: 0.52;
+}
+
+.status,
+.error {
+  margin: 14px 0 0;
+  font-size: 0.96rem;
+}
+
+.status {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--error);
+}
+
+.result {
+  margin-top: 24px;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.result-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.result-header span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.text-preview {
+  margin: 14px 0;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(5, 10, 18, 0.72);
+  color: #eef2ff;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.audio-player {
+  width: 100%;
+}
+
+@media (min-width: 700px) {
+  .shell {
+    padding: 28px;
+  }
+
+  .panel {
+    padding: 34px 32px 42px;
+  }
+}

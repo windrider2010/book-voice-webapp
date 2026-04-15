@@ -1,0 +1,8 @@
+.git
+.gitignore
+.pytest_cache
+__pycache__
+backend/.venv
+backend/var
+web/node_modules
+web/dist

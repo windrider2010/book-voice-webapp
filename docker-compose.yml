@@ -1,0 +1,28 @@
+services:
+  app:
+    container_name: book-voice-webapp
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      KOKORO_DEVICE: ${KOKORO_DEVICE:-cpu}
+      PADDLE_USE_GPU: ${PADDLE_USE_GPU:-0}
+    ports:
+      - "127.0.0.1:8001:8000"
+    restart: unless-stopped
+    init: true
+    volumes:
+      - media_data:/app/backend/var/media
+      - model_cache:/root/.cache
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  media_data:
+  model_cache:

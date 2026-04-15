@@ -1,0 +1,56 @@
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+REPO_DIR = BACKEND_DIR.parent
+WEB_DIST_DIR = REPO_DIR / "web" / "dist"
+
+load_dotenv(REPO_DIR / ".env", override=False)
+
+
+def _csv_env(name: str, default: str) -> tuple[str, ...]:
+    raw = os.getenv(name, default)
+    items = [item.strip() for item in raw.split(",")]
+    cleaned = [item for item in items if item]
+    return tuple(cleaned or ["*"])
+
+
+def _bool_env(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+@dataclass(slots=True)
+class Settings:
+    app_name: str = os.getenv("APP_NAME", "Book Voice API")
+    app_env: str = os.getenv("APP_ENV", "development")
+    allow_origins: tuple[str, ...] = _csv_env("ALLOW_ORIGINS", "*")
+    max_upload_bytes: int = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))
+    image_max_side: int = int(os.getenv("IMAGE_MAX_SIDE", "2200"))
+    media_ttl_seconds: int = int(os.getenv("MEDIA_TTL_SECONDS", "3600"))
+    max_active_reads: int = max(1, int(os.getenv("MAX_ACTIVE_READS", "1")))
+    default_zh_voice: str = os.getenv("DEFAULT_ZH_VOICE", "zf_xiaobei")
+    default_en_voice: str = os.getenv("DEFAULT_EN_VOICE", "af_heart")
+    kokoro_speed: float = float(os.getenv("KOKORO_SPEED", "1.0"))
+    kokoro_device: str = os.getenv("KOKORO_DEVICE", "cpu")
+    paddle_use_gpu: bool = _bool_env("PADDLE_USE_GPU", False)
+    espeak_ng_path: str | None = os.getenv("ESPEAK_NG_PATH") or None
+    backend_dir: Path = BACKEND_DIR
+    repo_dir: Path = REPO_DIR
+    web_dist_dir: Path = WEB_DIST_DIR
+    media_root: Path = BACKEND_DIR / "var" / "media"
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    settings = Settings()
+    settings.media_root.mkdir(parents=True, exist_ok=True)
+    return settings
