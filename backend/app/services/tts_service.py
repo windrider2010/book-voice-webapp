@@ -7,9 +7,9 @@ import threading
 import wave
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 
-from app.services.script_utils import SpeechSegment, split_text_by_script
+from app.services.script_utils import SpeechSegment, split_text_by_script, split_text_into_paragraphs
 
 _PIPELINE_LOCK = threading.Lock()
 _PIPELINES: dict[tuple[str, str], Any] = {}
@@ -245,3 +245,54 @@ def _wave_bytes_from_chunks(chunks: list[Any], sample_rate: int) -> bytes:
         for chunk in chunks:
             wav_file.writeframes(_audio_chunk_to_pcm_bytes(chunk))
     return buffer.getvalue()
+
+
+def synthesize_text_in_paragraphs(
+    tts_service: TtsService,
+    text: str,
+    lang_hint: str | None = None,
+    *,
+    progress_callback: Callable[[int, int], None] | None = None,
+) -> SynthesizedAudio:
+    paragraphs = split_text_into_paragraphs(text)
+    if not paragraphs:
+        raise RuntimeError("Cannot synthesize empty text.")
+
+    if progress_callback is not None:
+        progress_callback(0, len(paragraphs))
+
+    clips: list[SynthesizedAudio] = []
+    for index, paragraph in enumerate(paragraphs, start=1):
+        clips.append(tts_service.synthesize_text(paragraph, lang_hint))
+        if progress_callback is not None:
+            progress_callback(index, len(paragraphs))
+    return concatenate_synthesized_audio(clips)
+
+
+def concatenate_synthesized_audio(clips: list[SynthesizedAudio]) -> SynthesizedAudio:
+    if not clips:
+        raise RuntimeError("Cannot concatenate an empty audio clip list.")
+    if len(clips) == 1:
+        return clips[0]
+
+    first = clips[0]
+    frames = bytearray()
+    for clip in clips:
+        with wave.open(io.BytesIO(clip.audio_bytes), "rb") as wav_file:
+            if wav_file.getnchannels() != 1 or wav_file.getsampwidth() != 2:
+                raise RuntimeError("Unsupported WAV format returned from TTS synthesis.")
+            if wav_file.getframerate() != first.sample_rate:
+                raise RuntimeError("Sample rate mismatch across synthesized audio chunks.")
+            frames.extend(wav_file.readframes(wav_file.getnframes()))
+
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(first.sample_rate)
+        wav_file.writeframes(bytes(frames))
+    return SynthesizedAudio(
+        audio_bytes=buffer.getvalue(),
+        mime_type=first.mime_type,
+        sample_rate=first.sample_rate,
+    )

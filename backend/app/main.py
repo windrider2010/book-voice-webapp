@@ -5,6 +5,8 @@ import logging
 import threading
 import uuid
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -12,11 +14,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 
 from app.config import get_settings
-from app.models import HealthResponse, OcrBlock, OcrResponse, ReadResponse
+from app.models import (
+    HealthResponse,
+    OcrBlock,
+    OcrResponse,
+    ReadJobAcceptedResponse,
+    ReadJobStatusResponse,
+    ReadResponse,
+)
 from app.services.image_pipeline import ImageValidationError, normalize_uploaded_image
 from app.services.media_store import MediaStore
 from app.services.ocr_service import OcrService, PaddleOcrService
-from app.services.tts_service import KokoroTtsService, TtsService
+from app.services.tts_service import KokoroTtsService, TtsService, synthesize_text_in_paragraphs
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +48,199 @@ class ReadConcurrencyGate:
             self._active = max(0, self._active - 1)
 
 
+@dataclass(slots=True)
+class ReadJob:
+    request_id: str
+    status: str
+    stage: str
+    created_at: datetime
+    updated_at: datetime
+    image: object | None = None
+    input_text: str | None = None
+    lang_hint: str | None = None
+    text: str | None = None
+    mime_type: str | None = None
+    expires_at: str | None = None
+    paragraphs_total: int = 0
+    paragraphs_completed: int = 0
+    error: str | None = None
+
+
+class ReadJobManager:
+    def __init__(self, *, max_workers: int, ttl_seconds: int) -> None:
+        self._max_workers = max(1, max_workers)
+        self._ttl_seconds = max(60, ttl_seconds)
+        self._jobs: dict[str, ReadJob] = {}
+        self._lock = threading.Lock()
+        self._queue: asyncio.Queue[str] | None = None
+        self._workers: list[asyncio.Task[None]] = []
+
+    def create_job(
+        self,
+        *,
+        image: object | None,
+        text: str | None,
+        lang_hint: str | None,
+    ) -> ReadJob:
+        now = datetime.now(UTC)
+        job = ReadJob(
+            request_id=uuid.uuid4().hex,
+            status="queued",
+            stage="queued",
+            created_at=now,
+            updated_at=now,
+            image=image,
+            input_text=text,
+            lang_hint=lang_hint,
+        )
+        with self._lock:
+            self._jobs[job.request_id] = job
+        return job
+
+    async def start(self, app: FastAPI) -> None:
+        if self._queue is not None:
+            return
+        self._queue = asyncio.Queue()
+        self._workers = [
+            asyncio.create_task(self._worker(app), name=f"read-job-worker-{index}")
+            for index in range(self._max_workers)
+        ]
+
+    async def stop(self) -> None:
+        workers = list(self._workers)
+        self._workers.clear()
+        queue = self._queue
+        self._queue = None
+        for worker in workers:
+            worker.cancel()
+        for worker in workers:
+            try:
+                await worker
+            except asyncio.CancelledError:
+                pass
+        if queue is not None:
+            while not queue.empty():
+                try:
+                    queue.get_nowait()
+                    queue.task_done()
+                except asyncio.QueueEmpty:
+                    break
+
+    async def enqueue(self, request_id: str) -> None:
+        if self._queue is None:
+            raise RuntimeError("Read job manager has not been started.")
+        await self._queue.put(request_id)
+
+    def get_job(self, request_id: str) -> ReadJob | None:
+        with self._lock:
+            return self._jobs.get(request_id)
+
+    def cleanup_expired(self) -> int:
+        cutoff = datetime.now(UTC) - timedelta(seconds=self._ttl_seconds)
+        removed = 0
+        with self._lock:
+            expired_ids = [
+                request_id
+                for request_id, job in self._jobs.items()
+                if job.status in {"completed", "failed"} and job.updated_at <= cutoff
+            ]
+            for request_id in expired_ids:
+                self._jobs.pop(request_id, None)
+                removed += 1
+        return removed
+
+    async def _worker(self, app: FastAPI) -> None:
+        assert self._queue is not None
+        while True:
+            request_id = await self._queue.get()
+            try:
+                await self._process_job(app, request_id)
+            finally:
+                self._queue.task_done()
+
+    async def _process_job(self, app: FastAPI, request_id: str) -> None:
+        with self._lock:
+            job = self._jobs.get(request_id)
+            if job is None:
+                return
+            job.status = "processing"
+            job.stage = "ocr"
+            job.updated_at = datetime.now(UTC)
+            image = job.image
+            input_text = job.input_text
+            lang_hint = job.lang_hint
+
+        try:
+            if image is not None:
+                recognized = await asyncio.to_thread(app.state.ocr_service.recognize, image, lang_hint)
+                source_text = recognized.text
+            else:
+                source_text = (input_text or "").strip()
+
+            if not source_text:
+                raise ValueError("No readable text was produced from the submitted input.")
+            max_text_chars = app.state.settings.max_text_chars
+            if len(source_text) > max_text_chars:
+                raise ValueError(f"Text exceeds the {max_text_chars} character limit.")
+
+            with self._lock:
+                tts_job = self._jobs.get(request_id)
+                if tts_job is not None:
+                    tts_job.text = source_text
+                    tts_job.stage = "tts"
+                    tts_job.updated_at = datetime.now(UTC)
+
+            def on_tts_progress(completed: int, total: int) -> None:
+                with self._lock:
+                    progress_job = self._jobs.get(request_id)
+                    if progress_job is None:
+                        return
+                    progress_job.status = "processing"
+                    progress_job.stage = "tts"
+                    progress_job.paragraphs_total = total
+                    progress_job.paragraphs_completed = completed
+                    progress_job.updated_at = datetime.now(UTC)
+
+            audio = await asyncio.to_thread(
+                synthesize_text_in_paragraphs,
+                app.state.tts_service,
+                source_text,
+                lang_hint,
+                progress_callback=on_tts_progress,
+            )
+            asset = app.state.media_store.store_audio(
+                request_id=request_id,
+                audio_bytes=audio.audio_bytes,
+                mime_type=audio.mime_type,
+                text=source_text,
+            )
+        except Exception as exc:
+            logger.exception("Read job %s failed", request_id)
+            with self._lock:
+                failed_job = self._jobs.get(request_id)
+                if failed_job is not None:
+                    failed_job.status = "failed"
+                    failed_job.stage = "failed"
+                    failed_job.error = str(exc)
+                    failed_job.updated_at = datetime.now(UTC)
+                    failed_job.image = None
+                    failed_job.input_text = None
+            return
+
+        with self._lock:
+            completed_job = self._jobs.get(request_id)
+            if completed_job is None:
+                return
+            completed_job.status = "completed"
+            completed_job.stage = "completed"
+            completed_job.updated_at = datetime.now(UTC)
+            completed_job.text = source_text
+            completed_job.mime_type = audio.mime_type
+            completed_job.expires_at = asset.expires_at
+            completed_job.image = None
+            completed_job.input_text = None
+
+
 def create_app(
     *,
     settings=None,
@@ -52,6 +254,8 @@ def create_app(
     async def lifespan(app: FastAPI):
         app.state.media_store.cleanup_expired()
         app.state.media_store.cleanup_to_size_limit()
+        app.state.read_job_manager.cleanup_expired()
+        await app.state.read_job_manager.start(app)
         if app.state.settings.preload_models:
             await asyncio.to_thread(_preload_runtime_dependencies, app)
         cleanup_task = asyncio.create_task(_media_cleanup_loop(app))
@@ -63,6 +267,7 @@ def create_app(
                 await cleanup_task
             except asyncio.CancelledError:
                 pass
+            await app.state.read_job_manager.stop()
 
     app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
@@ -85,6 +290,10 @@ def create_app(
         max_bytes=settings.media_max_bytes,
     )
     app.state.read_gate = ReadConcurrencyGate(settings.max_active_reads)
+    app.state.read_job_manager = ReadJobManager(
+        max_workers=settings.max_active_reads,
+        ttl_seconds=settings.media_ttl_seconds,
+    )
 
     app.add_middleware(
         CORSMiddleware,
@@ -149,7 +358,12 @@ def create_app(
                     detail=f"Text exceeds the {settings.max_text_chars} character limit.",
                 )
 
-            audio = await asyncio.to_thread(app.state.tts_service.synthesize_text, source_text, lang_hint)
+            audio = await asyncio.to_thread(
+                synthesize_text_in_paragraphs,
+                app.state.tts_service,
+                source_text,
+                lang_hint,
+            )
             asset = app.state.media_store.store_audio(
                 request_id=request_id,
                 audio_bytes=audio.audio_bytes,
@@ -172,6 +386,59 @@ def create_app(
             audio_url=audio_url,
             mime_type=audio.mime_type,
             expires_at=asset.expires_at,
+        )
+
+    @app.post("/api/read/jobs", response_model=ReadJobAcceptedResponse, status_code=202)
+    async def start_read_job(
+        image: UploadFile | None = File(None),
+        text: str | None = Form(None),
+        lang_hint: str | None = Form(None),
+    ) -> ReadJobAcceptedResponse:
+        if image is None and not (text or "").strip():
+            raise HTTPException(status_code=422, detail="Provide either `image` or `text`.")
+        if image is not None and (text or "").strip():
+            raise HTTPException(status_code=422, detail="Provide only one of `image` or `text`, not both.")
+
+        normalized_image = None
+        input_text = None
+        if image is not None:
+            normalized = await _read_and_normalize_upload(image, app)
+            normalized_image = normalized.image
+        else:
+            input_text = (text or "").strip()
+            if len(input_text) > settings.max_text_chars:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Text exceeds the {settings.max_text_chars} character limit.",
+                )
+
+        job = app.state.read_job_manager.create_job(
+            image=normalized_image,
+            text=input_text,
+            lang_hint=lang_hint,
+        )
+        await app.state.read_job_manager.enqueue(job.request_id)
+        return ReadJobAcceptedResponse(request_id=job.request_id, status=job.status)
+
+    @app.get("/api/read/jobs/{request_id}", response_model=ReadJobStatusResponse)
+    async def get_read_job(request: Request, request_id: str) -> ReadJobStatusResponse:
+        job = app.state.read_job_manager.get_job(request_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Read job not found or expired.")
+        audio_url = None
+        if job.status == "completed":
+            audio_url = str(request.url_for("get_audio_asset", request_id=request_id))
+        return ReadJobStatusResponse(
+            request_id=job.request_id,
+            status=job.status,  # type: ignore[arg-type]
+            stage=job.stage,  # type: ignore[arg-type]
+            text=job.text,
+            audio_url=audio_url,
+            mime_type=job.mime_type,
+            expires_at=job.expires_at,
+            paragraphs_total=job.paragraphs_total,
+            paragraphs_completed=job.paragraphs_completed,
+            error=job.error,
         )
 
     @app.get("/media/audio/{request_id}", name="get_audio_asset")
@@ -232,6 +499,7 @@ async def _media_cleanup_loop(app: FastAPI) -> None:
         try:
             app.state.media_store.cleanup_expired()
             app.state.media_store.cleanup_to_size_limit()
+            app.state.read_job_manager.cleanup_expired()
         except Exception:
             logger.exception("Background media cleanup failed")
 

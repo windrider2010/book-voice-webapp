@@ -601,6 +601,12 @@ button:disabled {
   overflow-x: auto;
 }
 
+.result-note {
+  margin: 0 0 14px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .audio-player {
   width: 100%;
 }

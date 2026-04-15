@@ -15,7 +15,7 @@ if str(BACKEND_DIR) not in sys.path:
 from app.config import get_settings
 from app.services.image_pipeline import normalize_uploaded_image
 from app.services.ocr_service import PaddleOcrService
-from app.services.tts_service import KokoroTtsService
+from app.services.tts_service import KokoroTtsService, synthesize_text_in_paragraphs
 
 
 def parse_args() -> argparse.Namespace:
@@ -85,7 +85,7 @@ def main() -> int:
     ocr_seconds = perf_counter() - ocr_started
 
     tts_started = perf_counter()
-    audio = tts_service.synthesize_text(recognized.text, args.lang_hint)
+    audio = synthesize_text_in_paragraphs(tts_service, recognized.text, args.lang_hint)
     tts_seconds = perf_counter() - tts_started
     total_seconds = perf_counter() - started
 

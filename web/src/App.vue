@@ -4,7 +4,7 @@ import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import arendellePhoto from './assets/themes/arendelle-harbor.jpg'
 import frozenPhoto from './assets/themes/frozen-ice-cave.jpg'
 import moanaPhoto from './assets/themes/moana-outrigger.jpg'
-import { submitReadRequest } from './lib/api'
+import { submitReadRequest, type ReadJobProgressPayload } from './lib/api'
 import { captureVideoFrame } from './lib/capture'
 import { attemptPlayback } from './lib/playback'
 
@@ -72,9 +72,31 @@ const errorMessage = ref('')
 const recognizedText = ref('')
 const audioUrl = ref('')
 const needsManualPlay = ref(false)
+const paragraphsTotal = ref(0)
+const paragraphsCompleted = ref(0)
 
 const activeTheme = computed<ThemeOption>(() => themes.find((theme) => theme.id === themeId.value) ?? defaultTheme)
 const canCapture = computed(() => cameraReady.value && !isSubmitting.value)
+const resultTag = computed(() => {
+  if (isSubmitting.value && paragraphsTotal.value > 0) {
+    return `audio ${paragraphsCompleted.value}/${paragraphsTotal.value}`
+  }
+  if (isSubmitting.value && recognizedText.value) {
+    return 'ocr ready'
+  }
+  return activeTheme.value.resultTag
+})
+const processingTitle = computed(() => {
+  if (paragraphsTotal.value > 0) {
+    return paragraphsCompleted.value < paragraphsTotal.value
+      ? `Building audio ${paragraphsCompleted.value}/${paragraphsTotal.value}`
+      : 'Finalizing audio'
+  }
+  if (recognizedText.value) {
+    return 'OCR ready'
+  }
+  return 'Reading the page...'
+})
 
 function selectTheme(id: ThemeId): void {
   themeId.value = id
@@ -89,6 +111,38 @@ function getThemeArtStyle(photo: string): { backgroundImage: string } {
 function stopStream(): void {
   streamRef.value?.getTracks().forEach((track) => track.stop())
   streamRef.value = null
+}
+
+function applyReadProgress(progress: ReadJobProgressPayload): void {
+  if (progress.text) {
+    recognizedText.value = progress.text
+  }
+  paragraphsTotal.value = progress.paragraphs_total
+  paragraphsCompleted.value = progress.paragraphs_completed
+
+  if (progress.status === 'queued') {
+    statusMessage.value = 'Image uploaded. Waiting for the reader queue...'
+    return
+  }
+
+  if (progress.stage === 'ocr') {
+    statusMessage.value = 'Image uploaded. OCR is reading the page...'
+    return
+  }
+
+  if (progress.stage === 'tts') {
+    if (progress.paragraphs_total > 0) {
+      if (progress.paragraphs_completed === 0) {
+        statusMessage.value = `OCR ready. Building audio paragraph 1 of ${progress.paragraphs_total}...`
+      } else if (progress.paragraphs_completed < progress.paragraphs_total) {
+        statusMessage.value = `OCR ready. Built ${progress.paragraphs_completed} of ${progress.paragraphs_total} audio paragraphs...`
+      } else {
+        statusMessage.value = 'OCR ready. Finalizing audio...'
+      }
+    } else {
+      statusMessage.value = 'OCR ready. Building audio...'
+    }
+  }
 }
 
 async function startCamera(): Promise<void> {
@@ -143,14 +197,19 @@ async function captureAndRead(): Promise<void> {
 
   errorMessage.value = ''
   isSubmitting.value = true
-  statusMessage.value = 'Uploading the visible frame and generating audio...'
+  recognizedText.value = ''
+  audioUrl.value = ''
+  paragraphsTotal.value = 0
+  paragraphsCompleted.value = 0
+  statusMessage.value = 'Uploading the visible frame for OCR...'
   needsManualPlay.value = false
 
   try {
     const blob = await captureVideoFrame(videoRef.value)
-    const payload = await submitReadRequest(blob)
+    const payload = await submitReadRequest(blob, 'bilingual', applyReadProgress)
     recognizedText.value = payload.text
     audioUrl.value = payload.audio_url
+    paragraphsCompleted.value = paragraphsTotal.value || paragraphsCompleted.value
     statusMessage.value = 'Audio ready.'
     await nextTick()
     if (audioRef.value) {
@@ -237,8 +296,8 @@ onBeforeUnmount(() => {
                 <span></span>
               </div>
               <div class="processing-copy">
-                <p class="processing-title">Reading the page...</p>
-                <p>Uploading, OCR, and speech synthesis are in progress.</p>
+                <p class="processing-title">{{ processingTitle }}</p>
+                <p>{{ statusMessage }}</p>
               </div>
             </div>
           </div>
@@ -263,9 +322,12 @@ onBeforeUnmount(() => {
       <section v-if="recognizedText" class="result">
         <div class="result-header">
           <h2>OCR Text</h2>
-          <span>{{ activeTheme.resultTag }}</span>
+          <span>{{ resultTag }}</span>
         </div>
         <pre class="text-preview">{{ recognizedText }}</pre>
+        <p v-if="isSubmitting && !audioUrl" class="result-note">
+          Audio is still rendering. {{ paragraphsCompleted }}/{{ paragraphsTotal || '?' }} paragraphs complete.
+        </p>
         <audio v-if="audioUrl" ref="audioRef" :src="audioUrl" controls preload="auto" class="audio-player"></audio>
         <button v-if="needsManualPlay" type="button" class="secondary" @click="playAudio">Play Audio</button>
       </section>

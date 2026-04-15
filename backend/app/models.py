@@ -26,5 +26,23 @@ class ReadResponse(BaseModel):
     expires_at: str
 
 
+class ReadJobAcceptedResponse(BaseModel):
+    request_id: str
+    status: Literal["queued", "processing", "completed", "failed"]
+
+
+class ReadJobStatusResponse(BaseModel):
+    request_id: str
+    status: Literal["queued", "processing", "completed", "failed"]
+    stage: Literal["queued", "ocr", "tts", "completed", "failed"]
+    text: str | None = None
+    audio_url: str | None = None
+    mime_type: str | None = None
+    expires_at: str | None = None
+    paragraphs_total: int = 0
+    paragraphs_completed: int = 0
+    error: str | None = None
+
+
 class HealthResponse(BaseModel):
     status: Literal["ok"]

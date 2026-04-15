@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import io
+import threading
+import time
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -49,6 +51,17 @@ class FakePreloadTtsService(FakeTtsService):
         self.preloaded = True
 
 
+class BlockingTtsService(FakeTtsService):
+    def __init__(self) -> None:
+        self.started = threading.Event()
+        self.release = threading.Event()
+
+    def synthesize_text(self, text: str, lang_hint: str | None = None) -> SynthesizedAudio:
+        self.started.set()
+        self.release.wait(timeout=1)
+        return super().synthesize_text(text, lang_hint)
+
+
 def _make_client(tmp_path: Path, *, settings: Settings | None = None) -> TestClient:
     app = create_app(
         settings=settings,
@@ -64,6 +77,17 @@ def _sample_image_bytes() -> bytes:
     image = Image.new("RGB", (120, 60), color=(255, 255, 255))
     image.save(buffer, format="JPEG")
     return buffer.getvalue()
+
+
+def _wait_for_job_completion(client: TestClient, request_id: str) -> dict:
+    for _ in range(50):
+        response = client.get(f"/api/read/jobs/{request_id}")
+        assert response.status_code == 200
+        payload = response.json()
+        if payload["status"] in {"completed", "failed"}:
+            return payload
+        time.sleep(0.01)
+    raise AssertionError(f"Timed out waiting for read job {request_id}")
 
 
 def test_ocr_endpoint_returns_text_and_blocks(tmp_path: Path) -> None:
@@ -115,6 +139,64 @@ def test_read_endpoint_stream_mode_returns_audio_and_link(tmp_path: Path) -> Non
     assert response.headers["content-type"].startswith("audio/wav")
     assert response.headers["link"].startswith("<http://testserver/media/audio/")
     assert response.content == b"RIFFfakewav"
+
+
+def test_read_job_endpoint_returns_completed_status_and_audio_url(tmp_path: Path) -> None:
+    with _make_client(tmp_path) as client:
+        start_response = client.post(
+            "/api/read/jobs",
+            files={"image": ("page.jpg", _sample_image_bytes(), "image/jpeg")},
+            data={"lang_hint": "bilingual"},
+        )
+        assert start_response.status_code == 202
+        request_id = start_response.json()["request_id"]
+
+        payload = _wait_for_job_completion(client, request_id)
+        assert payload["status"] == "completed"
+        assert payload["stage"] == "completed"
+        assert "world" in payload["text"]
+        assert payload["mime_type"] == "audio/wav"
+        assert payload["audio_url"].endswith(f"/media/audio/{request_id}")
+        assert payload["paragraphs_total"] >= 1
+        assert payload["paragraphs_completed"] == payload["paragraphs_total"]
+
+
+def test_read_job_endpoint_surfaces_ocr_text_before_audio_completion(tmp_path: Path) -> None:
+    blocking_tts = BlockingTtsService()
+    app = create_app(
+        ocr_service=FakeOcrService(),
+        tts_service=blocking_tts,
+        media_store=MediaStore(tmp_path / "media", ttl_seconds=3600),
+    )
+
+    with TestClient(app) as client:
+        start_response = client.post(
+            "/api/read/jobs",
+            files={"image": ("page.jpg", _sample_image_bytes(), "image/jpeg")},
+            data={"lang_hint": "bilingual"},
+        )
+        assert start_response.status_code == 202
+        request_id = start_response.json()["request_id"]
+        assert blocking_tts.started.wait(timeout=1)
+
+        status_response = client.get(f"/api/read/jobs/{request_id}")
+        assert status_response.status_code == 200
+        payload = status_response.json()
+        assert payload["status"] == "processing"
+        assert payload["stage"] == "tts"
+        assert "world" in payload["text"]
+        assert payload["paragraphs_total"] == 1
+        assert payload["paragraphs_completed"] == 0
+
+        blocking_tts.release.set()
+        completed = _wait_for_job_completion(client, request_id)
+        assert completed["status"] == "completed"
+
+
+def test_read_job_endpoint_rejects_empty_input(tmp_path: Path) -> None:
+    client = _make_client(tmp_path)
+    start_response = client.post("/api/read/jobs", data={"text": "   "})
+    assert start_response.status_code == 422
 
 
 def test_audio_asset_endpoint_serves_cached_wav(tmp_path: Path) -> None:

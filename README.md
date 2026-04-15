@@ -6,7 +6,7 @@ An iPhone-first mobile web app for reading printed book pages aloud:
 - The UI shows the rear camera preview, captures one frame, uploads it.
 - FastAPI runs OCR with PaddleOCR.
 - FastAPI turns the recognized text into speech with Kokoro.
-- The phone plays the returned audio directly.
+- The phone starts a background read job, polls for completion, and then plays the generated audio.
 
 ## Repo Layout
 

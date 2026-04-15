@@ -107,6 +107,44 @@ describe('App', () => {
     await flushPromises()
   })
 
+  it('shows OCR text before audio generation finishes', async () => {
+    getUserMedia.mockResolvedValue({
+      getTracks: () => [{ stop: vi.fn() }],
+    })
+    let resolveRequest: ((value: typeof sampleReadPayload) => void) | undefined
+    vi.mocked(captureVideoFrame).mockResolvedValue(new Blob(['img'], { type: 'image/jpeg' }))
+    vi.mocked(submitReadRequest).mockImplementation(
+      (_blob, _langHint, onProgress) =>
+        new Promise((resolve) => {
+          onProgress?.({
+            request_id: 'req-1',
+            status: 'processing',
+            stage: 'tts',
+            text: 'hello world',
+            audio_url: null,
+            mime_type: null,
+            expires_at: null,
+            paragraphs_total: 3,
+            paragraphs_completed: 1,
+            error: null,
+          })
+          resolveRequest = resolve
+        }),
+    )
+
+    const wrapper = mount(App)
+    await wrapper.get('button.primary').trigger('click')
+    await flushPromises()
+    await wrapper.get('button.capture').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('hello world')
+    expect(wrapper.text()).toContain('Audio is still rendering. 1/3 paragraphs complete.')
+
+    resolveRequest?.(sampleReadPayload)
+    await flushPromises()
+  })
+
   it('shows a manual play button when autoplay is rejected', async () => {
     getUserMedia.mockResolvedValue({
       getTracks: () => [{ stop: vi.fn() }],

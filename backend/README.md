@@ -6,6 +6,8 @@ Core endpoints:
 
 - `POST /api/ocr`
 - `POST /api/read`
+- `POST /api/read/jobs`
+- `GET /api/read/jobs/{request_id}`
 - `GET /media/audio/{request_id}`
 - `GET /healthz`
 
