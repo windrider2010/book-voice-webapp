@@ -27,3 +27,23 @@ def test_paddle_ocr_service_uses_device_kwarg_for_paddleocr_v3(monkeypatch) -> N
     gpu_service._get_engine("en")
     assert captured["device"] == "gpu:0"
     assert captured["lang"] == "en"
+
+
+def test_paddle_ocr_service_prefers_predict_over_legacy_ocr() -> None:
+    class FakeEngine:
+        def ocr(self, *_args, **_kwargs):
+            raise AssertionError("legacy ocr path should not be used when predict exists")
+
+        def predict(self, _image):
+            return [
+                {
+                    "rec_texts": ["hello"],
+                    "rec_scores": [0.99],
+                    "rec_polys": [[[0, 0], [1, 0], [1, 1], [0, 1]]],
+                }
+            ]
+
+    service = PaddleOcrService()
+    blocks = service._extract_blocks(FakeEngine(), image_array=None)
+    assert len(blocks) == 1
+    assert blocks[0].text == "hello"

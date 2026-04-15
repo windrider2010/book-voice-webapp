@@ -70,12 +70,12 @@ class PaddleOcrService:
             return engine
 
     def _extract_blocks(self, engine: Any, image_array: Any) -> list[RecognizedBlock]:
-        if hasattr(engine, "ocr"):
-            result = engine.ocr(image_array, cls=True)
-            return _parse_legacy_result(result)
         if hasattr(engine, "predict"):
             result = engine.predict(image_array)
             return _parse_predict_result(result)
+        if hasattr(engine, "ocr"):
+            result = engine.ocr(image_array, cls=True)
+            return _parse_legacy_result(result)
         raise RuntimeError("Unsupported PaddleOCR engine API.")
 
 
