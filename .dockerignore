@@ -14,7 +14,8 @@ coverage/
 
 backend/.venv/
 backend/var/
-backend/tests/
+backend/tests/*
+!backend/tests/ocr_voice_test.png
 backend/README.md
 
 web/node_modules/
