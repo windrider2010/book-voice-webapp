@@ -9,5 +9,6 @@ backend/.venv/
 backend/var/
 web/node_modules/
 web/dist/
+*.tsbuildinfo
 coverage/
 .env
