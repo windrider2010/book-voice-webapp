@@ -61,7 +61,7 @@ class PaddleOcrService:
 
             engine = PaddleOCR(
                 lang=language,
-                use_gpu=self._use_gpu,
+                device="gpu:0" if self._use_gpu else "cpu",
                 use_doc_orientation_classify=False,
                 use_doc_unwarping=False,
                 use_textline_orientation=False,
