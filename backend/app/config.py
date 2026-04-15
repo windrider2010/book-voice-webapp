@@ -35,6 +35,10 @@ class Settings:
     allow_origins: tuple[str, ...] = _csv_env("ALLOW_ORIGINS", "*")
     max_upload_bytes: int = int(os.getenv("MAX_UPLOAD_BYTES", str(10 * 1024 * 1024)))
     max_text_chars: int = int(os.getenv("MAX_TEXT_CHARS", "10000"))
+    preload_models: bool = _bool_env(
+        "PRELOAD_MODELS",
+        os.getenv("APP_ENV", "development").strip().lower() == "production",
+    )
     image_max_side: int = int(os.getenv("IMAGE_MAX_SIDE", "2200"))
     media_ttl_seconds: int = int(os.getenv("MEDIA_TTL_SECONDS", "3600"))
     media_cleanup_interval_seconds: int = int(os.getenv("MEDIA_CLEANUP_INTERVAL_SECONDS", "300"))

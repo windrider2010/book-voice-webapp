@@ -29,6 +29,25 @@ class FakeTtsService:
     def synthesize_text(self, text: str, lang_hint: str | None = None) -> SynthesizedAudio:
         return SynthesizedAudio(audio_bytes=b"RIFFfakewav", mime_type="audio/wav", sample_rate=24000)
 
+    def preload(self) -> None:
+        self.preloaded = True
+
+
+class FakePreloadOcrService(FakeOcrService):
+    def __init__(self) -> None:
+        self.preloaded = False
+
+    def preload(self) -> None:
+        self.preloaded = True
+
+
+class FakePreloadTtsService(FakeTtsService):
+    def __init__(self) -> None:
+        self.preloaded = False
+
+    def preload(self) -> None:
+        self.preloaded = True
+
 
 def _make_client(tmp_path: Path, *, settings: Settings | None = None) -> TestClient:
     app = create_app(
@@ -126,3 +145,19 @@ def test_read_endpoint_rejects_overlong_text(tmp_path: Path) -> None:
     response = client.post("/api/read", data={"text": "hello"})
     assert response.status_code == 422
     assert "character limit" in response.json()["detail"]
+
+
+def test_app_preloads_runtime_dependencies_when_enabled(tmp_path: Path) -> None:
+    ocr = FakePreloadOcrService()
+    tts = FakePreloadTtsService()
+    settings = Settings(preload_models=True)
+    app = create_app(
+        settings=settings,
+        ocr_service=ocr,
+        tts_service=tts,
+        media_store=MediaStore(tmp_path / "media", ttl_seconds=3600),
+    )
+    with TestClient(app):
+        pass
+    assert ocr.preloaded is True
+    assert tts.preloaded is True

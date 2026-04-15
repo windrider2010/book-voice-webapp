@@ -52,6 +52,8 @@ def create_app(
     async def lifespan(app: FastAPI):
         app.state.media_store.cleanup_expired()
         app.state.media_store.cleanup_to_size_limit()
+        if app.state.settings.preload_models:
+            await asyncio.to_thread(_preload_runtime_dependencies, app)
         cleanup_task = asyncio.create_task(_media_cleanup_loop(app))
         try:
             yield
@@ -232,6 +234,18 @@ async def _media_cleanup_loop(app: FastAPI) -> None:
             app.state.media_store.cleanup_to_size_limit()
         except Exception:
             logger.exception("Background media cleanup failed")
+
+
+def _preload_runtime_dependencies(app: FastAPI) -> None:
+    ocr_service = app.state.ocr_service
+    preload_ocr = getattr(ocr_service, "preload", None)
+    if callable(preload_ocr):
+        preload_ocr()
+
+    tts_service = app.state.tts_service
+    preload_tts = getattr(tts_service, "preload", None)
+    if callable(preload_tts):
+        preload_tts()
 
 
 app = create_app()

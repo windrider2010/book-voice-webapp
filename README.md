@@ -60,6 +60,7 @@ npm test
 - The backend serves the built `web/dist` directory in production for same-origin camera upload and audio playback.
 - Uploaded images are validated and normalized entirely in memory; they are not persisted to disk.
 - Audio files are cached on local disk with a TTL, a background cleanup loop, and an overall disk budget guard.
+- In production, OCR/TTS models are preloaded at startup so the first user request does not pay the cold-start download and initialization cost.
 - `MAX_ACTIVE_READS=1` limits concurrent OCR+TTS jobs on CPU-first deployments.
 - The Docker image is aligned for Oracle Ubuntu hosts running Linux containers: Node builds the Vue bundle in a separate stage, Python 3.12 runs the API, and the runtime image includes the Linux shared libraries commonly required by PaddleOCR/OpenCV and Kokoro/eSpeak.
 - This stack is aligned for Oracle Ubuntu `arm64` and `x86_64` CPU hosts. `paddlepaddle` is resolved from Paddle's official CPU wheel index instead of PyPI so Linux `aarch64` builds can install the official ARM wheel in Docker.
@@ -110,6 +111,7 @@ APP_ENV=production
 ALLOW_ORIGINS=https://your-domain.example
 MAX_ACTIVE_READS=1
 MAX_TEXT_CHARS=10000
+PRELOAD_MODELS=1
 MEDIA_TTL_SECONDS=3600
 MEDIA_CLEANUP_INTERVAL_SECONDS=300
 MEDIA_MAX_BYTES=536870912

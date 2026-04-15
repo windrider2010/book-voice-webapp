@@ -30,6 +30,9 @@ class TtsService(Protocol):
     def synthesize_text(self, text: str, lang_hint: str | None = None) -> SynthesizedAudio:
         """Convert text into speech audio."""
 
+    def preload(self) -> None:
+        """Warm runtime assets so the first user request is not a cold start."""
+
 
 class KokoroTtsService:
     provider_name = "kokoro"
@@ -83,6 +86,16 @@ class KokoroTtsService:
             mime_type=self.mime_type,
             sample_rate=self.sample_rate,
         )
+
+    def preload(self) -> None:
+        warmups = [
+            ("Hello.", "a", self._default_en_voice),
+            ("你好。", "z", self._default_zh_voice),
+        ]
+        for text, lang_code, voice in warmups:
+            pipeline = _get_pipeline(lang_code=lang_code, device=self._device, espeak_ng_path=self._espeak_ng_path)
+            for _ in pipeline(text, voice=voice, speed=self._speed):
+                pass
 
 
 def _language_for_segment(

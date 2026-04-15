@@ -33,11 +33,13 @@ COPY backend/ ./
 COPY --from=web-build /app/web/dist /app/web/dist
 
 RUN UV_CACHE_DIR=/tmp/uv-cache uv sync --no-dev \
+    && .venv/bin/python -m pip install --no-cache-dir \
+        https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl \
     && rm -rf /tmp/uv-cache /root/.cache/uv
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=45s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=300s --retries=3 \
   CMD curl --fail http://127.0.0.1:8000/healthz || exit 1
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

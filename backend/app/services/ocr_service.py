@@ -45,6 +45,10 @@ class PaddleOcrService:
         self._lock = threading.Lock()
         self._engines: dict[str, Any] = {}
 
+    def preload(self, languages: tuple[str, ...] = ("ch",)) -> None:
+        for language in languages:
+            self._get_engine(language)
+
     def recognize(self, image: Image.Image, lang_hint: str | None = None) -> RecognizedPage:
         try:
             import numpy as np
