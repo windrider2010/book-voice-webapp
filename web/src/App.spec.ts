@@ -20,6 +20,13 @@ import { captureVideoFrame } from './lib/capture'
 import { attemptPlayback } from './lib/playback'
 
 const getUserMedia = vi.fn()
+const sampleReadPayload = {
+  request_id: 'req-1',
+  text: 'hello world',
+  audio_url: '/media/audio/req-1',
+  mime_type: 'audio/wav',
+  expires_at: '2026-04-14T00:00:00Z',
+}
 
 describe('App', () => {
   beforeEach(() => {
@@ -65,18 +72,46 @@ describe('App', () => {
     expect(wrapper.text()).toContain('Camera permission was denied')
   })
 
+  it('switches theme skins without leaving the capture screen', async () => {
+    const wrapper = mount(App)
+
+    await wrapper.get('[data-theme-choice="moana"]').trigger('click')
+
+    expect(wrapper.get('.shell').attributes('data-theme')).toBe('moana')
+    expect(wrapper.text()).toContain('Frame the page in a bright tide and read on the move.')
+  })
+
+  it('shows a loading animation while upload and audio generation are in progress', async () => {
+    getUserMedia.mockResolvedValue({
+      getTracks: () => [{ stop: vi.fn() }],
+    })
+    let resolveRequest: ((value: typeof sampleReadPayload) => void) | undefined
+    vi.mocked(captureVideoFrame).mockResolvedValue(new Blob(['img'], { type: 'image/jpeg' }))
+    vi.mocked(submitReadRequest).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRequest = resolve
+        }),
+    )
+
+    const wrapper = mount(App)
+    await wrapper.get('button.primary').trigger('click')
+    await flushPromises()
+    await wrapper.get('button.capture').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Reading the page...')
+
+    resolveRequest?.(sampleReadPayload)
+    await flushPromises()
+  })
+
   it('shows a manual play button when autoplay is rejected', async () => {
     getUserMedia.mockResolvedValue({
       getTracks: () => [{ stop: vi.fn() }],
     })
     vi.mocked(captureVideoFrame).mockResolvedValue(new Blob(['img'], { type: 'image/jpeg' }))
-    vi.mocked(submitReadRequest).mockResolvedValue({
-      request_id: 'req-1',
-      text: '你好 world',
-      audio_url: '/media/audio/req-1',
-      mime_type: 'audio/wav',
-      expires_at: '2026-04-14T00:00:00Z',
-    })
+    vi.mocked(submitReadRequest).mockResolvedValue(sampleReadPayload)
     vi.mocked(attemptPlayback).mockResolvedValue(true)
 
     const wrapper = mount(App)
@@ -87,6 +122,6 @@ describe('App', () => {
 
     expect(wrapper.text()).toContain('Audio is ready')
     expect(wrapper.text()).toContain('Play Audio')
-    expect(wrapper.text()).toContain('你好 world')
+    expect(wrapper.text()).toContain('hello world')
   })
 })
