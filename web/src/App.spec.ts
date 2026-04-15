@@ -78,7 +78,8 @@ describe('App', () => {
     await wrapper.get('[data-theme-choice="moana"]').trigger('click')
 
     expect(wrapper.get('.shell').attributes('data-theme')).toBe('moana')
-    expect(wrapper.text()).toContain('Frame the page in a bright tide and read on the move.')
+    expect(wrapper.text()).toContain('Use a brighter ocean frame with a taller mobile camera box.')
+    expect(wrapper.text()).not.toContain('Let the page fill most of the frame.')
   })
 
   it('shows a loading animation while upload and audio generation are in progress', async () => {

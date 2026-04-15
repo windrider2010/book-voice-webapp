@@ -37,7 +37,7 @@ button {
   --bg-bottom: #06111f;
   --glow-a: rgba(144, 227, 255, 0.3);
   --glow-b: rgba(160, 194, 255, 0.18);
-  --panel: rgba(7, 19, 37, 0.78);
+  --panel: rgba(7, 19, 37, 0.8);
   --panel-border: rgba(170, 225, 255, 0.22);
   --text: #f4fbff;
   --muted: #c6d7eb;
@@ -46,12 +46,8 @@ button {
   --accent-contrast: #062330;
   --button-secondary-bg: rgba(255, 255, 255, 0.08);
   --button-secondary-border: rgba(255, 255, 255, 0.12);
-  --badge-bg: rgba(188, 241, 255, 0.12);
-  --badge-border: rgba(188, 241, 255, 0.2);
-  --chip-bg: rgba(8, 24, 47, 0.58);
-  --chip-border: rgba(187, 229, 255, 0.16);
-  --chip-active-bg: linear-gradient(135deg, rgba(125, 214, 244, 0.34), rgba(255, 255, 255, 0.08));
-  --chip-active-border: rgba(197, 242, 255, 0.48);
+  --chip-border: rgba(255, 255, 255, 0.16);
+  --chip-active-border: rgba(197, 242, 255, 0.54);
   --frame-border: rgba(241, 251, 255, 0.82);
   --frame-inner: rgba(140, 232, 255, 0.36);
   --status-bg: rgba(8, 18, 36, 0.56);
@@ -62,7 +58,7 @@ button {
   --error: #ffd0d0;
   position: relative;
   min-height: 100svh;
-  padding: 12px;
+  padding: 10px;
   color: var(--text);
   overflow: hidden;
   background:
@@ -75,19 +71,17 @@ button {
 .shell::after {
   content: "";
   position: absolute;
-  inset: auto;
   pointer-events: none;
-  filter: blur(0);
 }
 
 .shell::before {
+  top: 10vh;
+  right: -8vw;
   width: 44vw;
   height: 44vw;
-  right: -8vw;
-  top: 12vh;
   border-radius: 50%;
-  opacity: 0.46;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent 68%);
+  opacity: 0.44;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 68%);
 }
 
 .shell::after {
@@ -96,8 +90,8 @@ button {
   width: 58vw;
   height: 30vh;
   border-radius: 48% 52% 0 0;
-  opacity: 0.26;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 68%);
+  opacity: 0.22;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14), transparent 68%);
 }
 
 .shell[data-theme="frozen"] {
@@ -105,19 +99,11 @@ button {
   --bg-bottom: #06111f;
   --glow-a: rgba(144, 227, 255, 0.3);
   --glow-b: rgba(160, 194, 255, 0.18);
-  --panel: rgba(7, 19, 37, 0.78);
+  --panel: rgba(7, 19, 37, 0.8);
   --panel-border: rgba(170, 225, 255, 0.22);
   --accent: #baf4ff;
   --accent-strong: #6fd6f5;
   --accent-contrast: #062330;
-  --button-secondary-bg: rgba(255, 255, 255, 0.08);
-  --button-secondary-border: rgba(255, 255, 255, 0.12);
-  --badge-bg: rgba(188, 241, 255, 0.12);
-  --badge-border: rgba(188, 241, 255, 0.2);
-  --chip-bg: rgba(8, 24, 47, 0.58);
-  --chip-border: rgba(187, 229, 255, 0.16);
-  --chip-active-bg: linear-gradient(135deg, rgba(125, 214, 244, 0.34), rgba(255, 255, 255, 0.08));
-  --chip-active-border: rgba(197, 242, 255, 0.48);
   --frame-border: rgba(241, 251, 255, 0.82);
   --frame-inner: rgba(140, 232, 255, 0.36);
 }
@@ -134,14 +120,8 @@ button {
   --accent: #f7e0a0;
   --accent-strong: #d2b26a;
   --accent-contrast: #372205;
-  --button-secondary-bg: rgba(255, 255, 255, 0.06);
   --button-secondary-border: rgba(236, 216, 165, 0.16);
-  --badge-bg: rgba(14, 72, 111, 0.28);
-  --badge-border: rgba(223, 198, 133, 0.18);
-  --chip-bg: rgba(17, 36, 62, 0.62);
-  --chip-border: rgba(232, 213, 167, 0.14);
-  --chip-active-bg: linear-gradient(135deg, rgba(210, 178, 106, 0.3), rgba(21, 86, 123, 0.18));
-  --chip-active-border: rgba(245, 228, 176, 0.42);
+  --chip-active-border: rgba(245, 228, 176, 0.48);
   --frame-border: rgba(255, 239, 206, 0.86);
   --frame-inner: rgba(153, 209, 235, 0.34);
   --result-bg: rgba(255, 246, 225, 0.06);
@@ -153,21 +133,15 @@ button {
   --bg-bottom: #2f1425;
   --glow-a: rgba(60, 213, 255, 0.26);
   --glow-b: rgba(255, 130, 91, 0.24);
-  --panel: rgba(8, 25, 38, 0.8);
+  --panel: rgba(8, 25, 38, 0.82);
   --panel-border: rgba(108, 215, 255, 0.18);
   --text: #fff9f0;
   --muted: #d5e3e8;
   --accent: #ffbd74;
   --accent-strong: #ff7d5d;
   --accent-contrast: #3a170d;
-  --button-secondary-bg: rgba(255, 255, 255, 0.07);
   --button-secondary-border: rgba(255, 195, 134, 0.16);
-  --badge-bg: rgba(0, 92, 127, 0.28);
-  --badge-border: rgba(255, 173, 124, 0.16);
-  --chip-bg: rgba(4, 53, 75, 0.58);
-  --chip-border: rgba(127, 225, 255, 0.15);
-  --chip-active-bg: linear-gradient(135deg, rgba(30, 129, 166, 0.34), rgba(255, 125, 93, 0.28));
-  --chip-active-border: rgba(255, 205, 153, 0.42);
+  --chip-active-border: rgba(255, 205, 153, 0.46);
   --frame-border: rgba(255, 236, 198, 0.86);
   --frame-inner: rgba(117, 241, 255, 0.34);
   --result-bg: rgba(255, 233, 203, 0.06);
@@ -177,11 +151,11 @@ button {
 .panel {
   position: relative;
   z-index: 1;
-  width: min(100%, 920px);
+  width: min(100%, 980px);
   margin: 0 auto;
-  padding: 16px 14px 28px;
+  padding: 14px 14px 26px;
   border: 1px solid var(--panel-border);
-  border-radius: 30px;
+  border-radius: 28px;
   background: var(--panel);
   backdrop-filter: blur(20px);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24);
@@ -189,12 +163,12 @@ button {
 
 .topbar {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .brand {
   display: grid;
-  gap: 12px;
+  gap: 6px;
 }
 
 .brand-mark {
@@ -206,51 +180,47 @@ button {
 }
 
 .brand-subtitle {
-  display: block;
-  margin-top: 8px;
+  margin: 0;
   color: var(--muted);
-  font-size: 0.94rem;
-}
-
-.hero-notes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.badge {
-  padding: 8px 12px;
-  border: 1px solid var(--badge-border);
-  border-radius: 999px;
-  background: var(--badge-bg);
-  color: var(--text);
-  font-size: 0.8rem;
-  letter-spacing: 0.03em;
+  font-size: 0.92rem;
+  line-height: 1.45;
 }
 
 .theme-picker {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .theme-pill {
+  position: relative;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   align-items: flex-start;
   gap: 4px;
-  min-height: 74px;
-  padding: 12px 12px 11px;
+  min-height: 84px;
+  padding: 10px;
+  overflow: hidden;
   border: 1px solid var(--chip-border);
   border-radius: 18px;
-  background: var(--chip-bg);
+  background-color: rgba(8, 24, 47, 0.58);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
   color: var(--text);
   text-align: left;
   transition:
     transform 160ms ease,
     border-color 160ms ease,
-    background 160ms ease,
     box-shadow 160ms ease;
+}
+
+.theme-pill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(4, 10, 18, 0.06), rgba(4, 10, 18, 0.64));
 }
 
 .theme-pill:hover,
@@ -260,28 +230,47 @@ button {
 }
 
 .theme-pill.active {
-  background: var(--chip-active-bg);
   border-color: var(--chip-active-border);
-  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+}
+
+.theme-pill__name,
+.theme-pill__hint {
+  position: relative;
+  z-index: 1;
 }
 
 .theme-pill__name {
-  font-size: 0.96rem;
+  font-size: 0.94rem;
   font-weight: 800;
 }
 
 .theme-pill__hint {
-  color: var(--muted);
-  font-size: 0.78rem;
+  color: rgba(244, 250, 255, 0.88);
+  font-size: 0.74rem;
 }
 
 .hero {
-  margin-top: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(112px, 34%);
+  align-items: center;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.hero-copy {
+  display: grid;
+  gap: 8px;
+  align-content: center;
 }
 
 .eyebrow {
-  margin: 0 0 10px;
-  font-size: 0.8rem;
+  margin: 0;
+  font-size: 0.76rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.2em;
@@ -290,93 +279,91 @@ button {
 
 .hero h1 {
   margin: 0;
-  font-size: clamp(2.15rem, 8vw, 4.2rem);
-  line-height: 0.94;
-  letter-spacing: -0.05em;
+  font-size: clamp(1.55rem, 5vw, 2.8rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
   max-width: 12ch;
 }
 
 .lede {
   max-width: 54ch;
-  margin: 14px 0 0;
-  font-size: 1rem;
-  line-height: 1.58;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.52;
   color: var(--muted);
 }
 
+.hero-art {
+  overflow: hidden;
+  min-height: 132px;
+  height: 100%;
+  border-radius: 20px;
+}
+
+.hero-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .camera-stage {
-  margin-top: 20px;
+  margin-top: 16px;
 }
 
 .camera-card {
   position: relative;
   overflow: hidden;
-  min-height: clamp(420px, 62svh, 720px);
+  min-height: clamp(480px, 68svh, 760px);
   border-radius: 30px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
-    rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.04);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  isolation: isolate;
 }
 
-.camera-card::after {
-  content: "";
+.camera-backdrop,
+.preview,
+.camera-overlay,
+.processing-overlay {
   position: absolute;
   inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(2, 6, 13, 0.14), transparent 22%, transparent 80%, rgba(2, 6, 13, 0.22)),
-    radial-gradient(circle at 50% 50%, transparent 48%, rgba(0, 0, 0, 0.08) 100%);
+}
+
+.camera-backdrop {
+  z-index: 0;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  transform: scale(1.03);
+  filter: saturate(1.06);
 }
 
 .preview {
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center center;
-  transform: scale(1.01);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.08)),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.14));
+  opacity: 0;
+  transition: opacity 180ms ease;
+  background: transparent;
+}
+
+.preview.live {
+  opacity: 1;
 }
 
 .camera-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: clamp(14px, 3vw, 28px);
+  z-index: 2;
+  padding: clamp(14px, 3vw, 26px);
   pointer-events: none;
-}
-
-.frame-copy {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.frame-chip {
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(6, 15, 31, 0.52);
-  color: #f9fcff;
-  font-size: 0.82rem;
-  backdrop-filter: blur(10px);
-}
-
-.frame-chip.subtle {
-  color: var(--muted);
 }
 
 .page-frame {
   position: relative;
-  flex: 1;
-  min-height: 0;
-  margin-top: 12px;
+  height: 100%;
   border: 1.5px solid var(--frame-border);
   border-radius: 28px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01));
@@ -388,9 +375,9 @@ button {
 .page-frame::before {
   content: "";
   position: absolute;
-  inset: 12px;
+  inset: 14px;
   border: 1px dashed var(--frame-inner);
-  border-radius: 20px;
+  border-radius: 22px;
   opacity: 0.78;
 }
 
@@ -406,8 +393,8 @@ button {
 
 .corner {
   position: absolute;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-color: var(--accent);
   border-style: solid;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.14));
@@ -442,8 +429,7 @@ button {
 }
 
 .processing-overlay {
-  position: absolute;
-  inset: 0;
+  z-index: 3;
   display: grid;
   place-items: center;
   padding: 22px;
@@ -631,37 +617,89 @@ button:disabled {
 
 @media (min-width: 760px) {
   .shell {
-    padding: 24px;
+    padding: 18px;
   }
 
   .panel {
-    padding: 24px 24px 34px;
+    padding: 18px 18px 30px;
   }
 
   .topbar {
-    grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+    align-items: center;
   }
 
-  .camera-stage {
-    margin-top: 24px;
+  .hero {
+    grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.85fr);
+    align-items: center;
+  }
+
+  .hero-art {
+    min-height: 160px;
   }
 
   .camera-card {
-    min-height: clamp(520px, 70svh, 780px);
+    min-height: clamp(520px, 69svh, 780px);
   }
 }
 
 @media (max-width: 600px) {
-  .theme-picker {
-    grid-template-columns: 1fr;
+  .shell {
+    padding: 8px;
+  }
+
+  .panel {
+    padding: 12px 12px 24px;
+    border-radius: 24px;
+  }
+
+  .theme-pill {
+    min-height: 78px;
+    padding: 9px;
+  }
+
+  .theme-pill__name {
+    font-size: 0.86rem;
+  }
+
+  .theme-pill__hint {
+    font-size: 0.7rem;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr) 128px;
+    gap: 10px;
+    padding: 10px;
+  }
+
+  .hero-art {
+    min-height: 118px;
   }
 
   .hero h1 {
-    max-width: none;
+    font-size: 1.45rem;
+  }
+
+  .lede {
+    font-size: 0.9rem;
+    line-height: 1.45;
   }
 
   .camera-card {
-    min-height: clamp(430px, 60svh, 620px);
+    min-height: clamp(560px, 78svh, 880px);
+    border-radius: 24px;
+  }
+
+  .camera-overlay {
+    padding: 12px;
+  }
+
+  .page-frame {
+    border-radius: 24px;
+  }
+
+  .page-frame::before {
+    inset: 12px;
+    border-radius: 18px;
   }
 }

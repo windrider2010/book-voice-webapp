@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 
+import arendellePhoto from './assets/themes/arendelle-harbor.jpg'
+import frozenPhoto from './assets/themes/frozen-ice-cave.jpg'
+import moanaPhoto from './assets/themes/moana-outrigger.jpg'
 import { submitReadRequest } from './lib/api'
 import { captureVideoFrame } from './lib/capture'
 import { attemptPlayback } from './lib/playback'
@@ -15,35 +18,43 @@ interface ThemeOption {
   title: string
   lede: string
   resultTag: string
+  photo: string
+  photoAlt: string
 }
 
 const themes: ThemeOption[] = [
   {
     id: 'frozen',
     label: 'Frozen',
-    hint: 'Ice hall glow',
-    eyebrow: 'Frozen Light',
-    title: 'Use a wider ice-lit camera stage for the page.',
-    lede: 'The live preview now dominates the screen, with a broad guide so the full page can fill the frame instead of only the center.',
+    hint: 'Ice cave',
+    eyebrow: 'Frozen Capture',
+    title: 'Give the page a tall, full-frame ice window.',
+    lede: 'The camera stage now opens edge to edge so one page can dominate the preview before you capture it.',
     resultTag: 'ice-tuned layout',
+    photo: frozenPhoto,
+    photoAlt: 'Blue glacial ice cave with reflected light',
   },
   {
     id: 'arendelle',
     label: 'Arendelle',
-    hint: 'Royal harbor calm',
+    hint: 'Fjord harbor',
     eyebrow: 'Arendelle Library',
-    title: 'Turn the phone into a calmer royal reading window.',
-    lede: 'A statelier palette, a larger live view, and a cleaner reading deck keep capture and playback on one screen.',
+    title: 'Keep the header tighter and the reading deck calmer.',
+    lede: 'A compact top section leaves more room for the live camera while the theme swaps to a real harbor image instead of a tint only.',
     resultTag: 'kingdom mode',
+    photo: arendellePhoto,
+    photoAlt: 'Nordic harbor town beside a fjord',
   },
   {
     id: 'moana',
     label: 'Moana',
-    hint: 'Ocean voyage warmth',
+    hint: 'Ocean canoe',
     eyebrow: 'Open Ocean',
-    title: 'Frame the page in a bright tide and read on the move.',
-    lede: 'The guide stays wide and vivid, which works better outdoors and keeps the capture area legible even in glare.',
+    title: 'Use a brighter ocean frame with a taller mobile camera box.',
+    lede: 'The phone gets a taller capture stage on small screens, which keeps the full page easier to line up outdoors or on the move.',
     resultTag: 'voyager mode',
+    photo: moanaPhoto,
+    photoAlt: 'Outrigger canoe on blue tropical water near the shore',
   },
 ]
 const defaultTheme: ThemeOption = themes[0]!
@@ -56,7 +67,7 @@ const themeId = ref<ThemeId>('frozen')
 const cameraReady = ref(false)
 const requestingCamera = ref(false)
 const isSubmitting = ref(false)
-const statusMessage = ref('Open the camera and let the page fill most of the guide.')
+const statusMessage = ref('Open the camera and fill the tall frame with one page.')
 const errorMessage = ref('')
 const recognizedText = ref('')
 const audioUrl = ref('')
@@ -67,6 +78,12 @@ const canCapture = computed(() => cameraReady.value && !isSubmitting.value)
 
 function selectTheme(id: ThemeId): void {
   themeId.value = id
+}
+
+function getThemeArtStyle(photo: string): { backgroundImage: string } {
+  return {
+    backgroundImage: `linear-gradient(180deg, rgba(4, 10, 18, 0.18), rgba(4, 10, 18, 0.82)), url(${photo})`,
+  }
 }
 
 function stopStream(): void {
@@ -105,7 +122,7 @@ async function startCamera(): Promise<void> {
       }
     }
     cameraReady.value = true
-    statusMessage.value = 'Camera ready. Let the page fill the guide before capture.'
+    statusMessage.value = 'Camera ready. Fill most of the tall frame with the page, then capture.'
   } catch (error) {
     cameraReady.value = false
     statusMessage.value = 'Camera blocked'
@@ -167,15 +184,8 @@ onBeforeUnmount(() => {
     <section class="panel">
       <header class="topbar">
         <div class="brand">
-          <div>
-            <p class="brand-mark">Book Voice</p>
-            <span class="brand-subtitle">iPhone camera + server OCR + server speech</span>
-          </div>
-          <div class="hero-notes">
-            <span class="badge">bigger live view</span>
-            <span class="badge">single-page capture</span>
-            <span class="badge">instant replay</span>
-          </div>
+          <p class="brand-mark">Book Voice</p>
+          <p class="brand-subtitle">Snap a page, run OCR, and play it back without wasting the screen on oversized chrome.</p>
         </div>
 
         <div class="theme-picker" role="tablist" aria-label="Theme picker">
@@ -187,6 +197,7 @@ onBeforeUnmount(() => {
             :class="{ active: theme.id === themeId }"
             :aria-pressed="theme.id === themeId"
             :data-theme-choice="theme.id"
+            :style="getThemeArtStyle(theme.photo)"
             @click="selectTheme(theme.id)"
           >
             <span class="theme-pill__name">{{ theme.label }}</span>
@@ -196,19 +207,21 @@ onBeforeUnmount(() => {
       </header>
 
       <section class="hero">
-        <p class="eyebrow">{{ activeTheme.eyebrow }}</p>
-        <h1>{{ activeTheme.title }}</h1>
-        <p class="lede">{{ activeTheme.lede }}</p>
+        <div class="hero-copy">
+          <p class="eyebrow">{{ activeTheme.eyebrow }}</p>
+          <h1>{{ activeTheme.title }}</h1>
+          <p class="lede">{{ activeTheme.lede }}</p>
+        </div>
+        <div class="hero-art">
+          <img :src="activeTheme.photo" :alt="activeTheme.photoAlt" />
+        </div>
       </section>
 
       <section class="camera-stage">
         <div class="camera-card">
-          <video ref="videoRef" autoplay muted playsinline class="preview" />
+          <div class="camera-backdrop" :style="getThemeArtStyle(activeTheme.photo)" aria-hidden="true"></div>
+          <video ref="videoRef" autoplay muted playsinline class="preview" :class="{ live: cameraReady }" />
           <div class="camera-overlay">
-            <div class="frame-copy">
-              <span class="frame-chip">Let the page fill most of the frame.</span>
-              <span class="frame-chip subtle">Keep the text sharp before capture.</span>
-            </div>
             <div class="page-frame" aria-hidden="true">
               <span class="corner corner--tl"></span>
               <span class="corner corner--tr"></span>
