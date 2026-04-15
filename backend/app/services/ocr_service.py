@@ -30,8 +30,18 @@ class OcrService(Protocol):
 
 
 class PaddleOcrService:
-    def __init__(self, *, use_gpu: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        use_gpu: bool = False,
+        enable_mkldnn: bool = False,
+        enable_hpi: bool = False,
+        cpu_threads: int = 4,
+    ) -> None:
         self._use_gpu = use_gpu
+        self._enable_mkldnn = enable_mkldnn
+        self._enable_hpi = enable_hpi
+        self._cpu_threads = max(1, cpu_threads)
         self._lock = threading.Lock()
         self._engines: dict[str, Any] = {}
 
@@ -62,6 +72,9 @@ class PaddleOcrService:
             engine = PaddleOCR(
                 lang=language,
                 device="gpu:0" if self._use_gpu else "cpu",
+                enable_hpi=self._enable_hpi,
+                enable_mkldnn=self._enable_mkldnn,
+                cpu_threads=self._cpu_threads,
                 use_doc_orientation_classify=False,
                 use_doc_unwarping=False,
                 use_textline_orientation=False,

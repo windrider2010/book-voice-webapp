@@ -19,14 +19,20 @@ def test_paddle_ocr_service_uses_device_kwarg_for_paddleocr_v3(monkeypatch) -> N
     cpu_service._get_engine("ch")
     assert captured["device"] == "cpu"
     assert captured["lang"] == "ch"
+    assert captured["enable_hpi"] is False
+    assert captured["enable_mkldnn"] is False
+    assert captured["cpu_threads"] == 4
     assert captured["use_doc_orientation_classify"] is False
     assert captured["use_doc_unwarping"] is False
     assert captured["use_textline_orientation"] is False
 
-    gpu_service = PaddleOcrService(use_gpu=True)
+    gpu_service = PaddleOcrService(use_gpu=True, enable_mkldnn=True, enable_hpi=True, cpu_threads=2)
     gpu_service._get_engine("en")
     assert captured["device"] == "gpu:0"
     assert captured["lang"] == "en"
+    assert captured["enable_hpi"] is True
+    assert captured["enable_mkldnn"] is True
+    assert captured["cpu_threads"] == 2
 
 
 def test_paddle_ocr_service_prefers_predict_over_legacy_ocr() -> None:

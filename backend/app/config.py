@@ -45,6 +45,9 @@ class Settings:
     kokoro_speed: float = float(os.getenv("KOKORO_SPEED", "1.0"))
     kokoro_device: str = os.getenv("KOKORO_DEVICE", "cpu")
     paddle_use_gpu: bool = _bool_env("PADDLE_USE_GPU", False)
+    paddle_enable_mkldnn: bool = _bool_env("PADDLE_ENABLE_MKLDNN", False)
+    paddle_enable_hpi: bool = _bool_env("PADDLE_ENABLE_HPI", False)
+    paddle_cpu_threads: int = max(1, int(os.getenv("PADDLE_CPU_THREADS", "4")))
     espeak_ng_path: str | None = os.getenv("ESPEAK_NG_PATH") or None
     backend_dir: Path = BACKEND_DIR
     repo_dir: Path = REPO_DIR

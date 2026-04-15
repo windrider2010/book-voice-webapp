@@ -10,6 +10,10 @@ services:
       APP_ENV: ${APP_ENV:-production}
       KOKORO_DEVICE: ${KOKORO_DEVICE:-cpu}
       PADDLE_USE_GPU: ${PADDLE_USE_GPU:-0}
+      PADDLE_ENABLE_MKLDNN: ${PADDLE_ENABLE_MKLDNN:-0}
+      PADDLE_ENABLE_HPI: ${PADDLE_ENABLE_HPI:-0}
+      PADDLE_CPU_THREADS: ${PADDLE_CPU_THREADS:-4}
+      PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: ${PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK:-True}
     ports:
       - "127.0.0.1:8001:8000"
     restart: unless-stopped
@@ -17,6 +21,7 @@ services:
     volumes:
       - media_data:/app/backend/var/media
       - model_cache:/root/.cache
+      - paddlex_models:/root/.paddlex
     logging:
       driver: json-file
       options:
@@ -26,3 +31,4 @@ services:
 volumes:
   media_data:
   model_cache:
+  paddlex_models:

@@ -64,7 +64,12 @@ def create_app(
 
     app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
     app.state.settings = settings
-    app.state.ocr_service = ocr_service or PaddleOcrService(use_gpu=settings.paddle_use_gpu)
+    app.state.ocr_service = ocr_service or PaddleOcrService(
+        use_gpu=settings.paddle_use_gpu,
+        enable_mkldnn=settings.paddle_enable_mkldnn,
+        enable_hpi=settings.paddle_enable_hpi,
+        cpu_threads=settings.paddle_cpu_threads,
+    )
     app.state.tts_service = tts_service or KokoroTtsService(
         default_en_voice=settings.default_en_voice,
         default_zh_voice=settings.default_zh_voice,
