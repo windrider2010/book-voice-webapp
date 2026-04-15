@@ -109,7 +109,7 @@ Copy this repo to `/opt/book-voice-webapp`, then create `/opt/book-voice-webapp/
 APP_ENV=production
 ALLOW_ORIGINS=https://your-domain.example
 MAX_ACTIVE_READS=1
-MAX_TEXT_CHARS=5000
+MAX_TEXT_CHARS=10000
 MEDIA_TTL_SECONDS=3600
 MEDIA_CLEANUP_INTERVAL_SECONDS=300
 MEDIA_MAX_BYTES=536870912
