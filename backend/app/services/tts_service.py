@@ -17,6 +17,7 @@ _DLL_DIRECTORY_LOCK = threading.Lock()
 _DLL_DIRECTORY_PATHS: set[str] = set()
 _DLL_DIRECTORY_HANDLES: list[Any] = []
 _ESPEAK_DATA_DIR_NAME = "espeak-ng-data"
+_KOKORO_REPO_ID = "hexgrad/Kokoro-82M"
 
 
 @dataclass(slots=True)
@@ -90,7 +91,7 @@ class KokoroTtsService:
     def preload(self) -> None:
         warmups = [
             ("Hello.", "a", self._default_en_voice),
-            ("你好。", "z", self._default_zh_voice),
+            ("\u4f60\u597d\u3002", "z", self._default_zh_voice),
         ]
         for text, lang_code, voice in warmups:
             pipeline = _get_pipeline(lang_code=lang_code, device=self._device, espeak_ng_path=self._espeak_ng_path)
@@ -123,7 +124,7 @@ def _get_pipeline(*, lang_code: str, device: str, espeak_ng_path: str | None) ->
             ) from exc
         if espeak_ng_path:
             _apply_explicit_espeak_override(espeak_ng_path)
-        pipeline = KPipeline(lang_code=lang_code, device=device)
+        pipeline = KPipeline(lang_code=lang_code, repo_id=_KOKORO_REPO_ID, device=device)
         _PIPELINES[key] = pipeline
         return pipeline
 
