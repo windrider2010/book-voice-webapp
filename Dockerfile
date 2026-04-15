@@ -33,7 +33,7 @@ COPY backend/ ./
 COPY --from=web-build /app/web/dist /app/web/dist
 
 RUN UV_CACHE_DIR=/tmp/uv-cache uv sync --no-dev \
-    && .venv/bin/python -m pip install --no-cache-dir \
+    && UV_CACHE_DIR=/tmp/uv-cache uv pip install --python .venv/bin/python \
         https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl \
     && rm -rf /tmp/uv-cache /root/.cache/uv
 
